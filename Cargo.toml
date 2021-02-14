@@ -1,0 +1,9 @@
+[package]
+name = "yali"
+version = "0.1.0"
+authors = ["Hugo Iñigo <hinigo001@ikasle.ehu.eus>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
