@@ -2,13 +2,27 @@
 
 #[derive(Debug)]
 pub struct TokenRange {
-    pub start:  usize,
-    pub end:    usize,
+    start:  usize,
+    end:    usize,
 }
 
 #[derive(Debug)]
-pub struct Token {
-    pub t: &'static str,
+pub struct Token<'a> {
+    pub value:  &'a str,
+    pub range:  TokenRange,
+    pub ttype:  TokenType,
+}
+
+#[derive(Debug)]
+pub enum TokenType {
+    Opc,
+    Clc,
+    Quo,
+    Quasi,
+    Unquo,
+    Assoc,
+    Str,
+    Other,
 }
 
 fn skip_whitespace(s: &str) -> usize {
@@ -62,15 +76,17 @@ fn next_token(s: &str) -> Option<TokenRange> {
         '\''|
         ',' => {
             Some(TokenRange { 
-            start: pos, 
-            end: pos+1
-        })},
+                // ttype: TokenType::Symbol,
+                start: pos, 
+                end: pos+1,
+            })},
 
         '"' => {
             let sl = &s[pos+1..];
             let end = skip_to_char(sl, '"');
             // println!("{} end: {:?}", sl.len(), end);
             Some(TokenRange {
+                // ttype: TokenType::Str,
                 start: pos,
                 end: if end.is_some() { end.unwrap() + 1 }
                     else { sl.len() } + pos + 1,
@@ -79,27 +95,54 @@ fn next_token(s: &str) -> Option<TokenRange> {
 
         _ => {
             Some(TokenRange {
+                // ttype: TokenType::Name,
                 start: pos,
                 end: pos + next_valid_symbol(&s[pos+1..]) + 1,
         })},
     }
 }
 
-pub fn tokenize(s: &'static str) -> Vec<Token> {
-    let mut parts = &s[..];
-    let mut next = next_token(parts);
+pub fn tokenize<'a>(s: &'a str) -> Vec<Token> {
     let mut res = Vec::new();
+    let mut offs = 0;
 
-    while next.is_some() {
-        let tr = next.unwrap();
-        let t = Token {
-            t: &parts[tr.start..tr.end],
+    loop {
+        let tok_ran = match next_token(&s[offs..]) {
+            // Return the given range with current offset
+            Some(tr) => TokenRange {
+                start:  tr.start + offs,
+                end:    tr.end + offs,
+            },
+            None => break, // All tokens have been processed, end here
         };
 
+        let val = &s[tok_ran.start..tok_ran.end];
+        offs = tok_ran.end;
+
+        let c = match val.chars().next() {
+            Some(c) => c,
+            None => continue, // Empty token, just ignore
+        };
+
+        let ttype = match c {
+            '(' => TokenType::Opc,
+            ')' => TokenType::Clc,
+            '\''=> TokenType::Quo,
+            '`' => TokenType::Quasi,
+            ',' => TokenType::Unquo,
+            '.' => TokenType::Assoc,
+            '"' => TokenType::Str,
+            _   => TokenType::Other,
+        };
+        let t = Token {
+            value:  &val,
+            range:  tok_ran,
+            ttype:  ttype,
+        };
         res.push(t);
-        parts = &parts[tr.end..];
-        next = next_token(parts);
     }
+
+    res.reverse();
     res
 }
 
