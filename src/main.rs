@@ -1,19 +1,14 @@
 use yali::tokenizer::*;
+use yali::parser::*;
 
 fn main() {
-    let st = "(+ (1       223 adawda 3)";
-    let v = tokenize(&st);
+    let s = "( 12\"foo\" '(asd, 1) \"bar\"\n\"ba\nz\")";
+
+    println!("{}", s);
+    let mut v = tokenize(&s);
     println!("{:?}", v);
 
-    let s = "(\"foo\" \"bar\"\n\"ba\nz\")";
-    let v = tokenize(&s);
-    println!("{:?}", v);
+    let p = parse_expr(&mut v);
+    println!("{:?}", p);
 
-    let s = "(\"foo\"; \"bar\"\n\"ba\nz\")";
-    let v = tokenize(&s);
-    println!("{:?}", v);
-
-    let s = "(\"foo\" '(asd, 1) \"bar\"\n\"ba\nz\")";
-    let v = tokenize(&s);
-    println!("{:?}", v);
 }
