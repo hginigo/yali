@@ -1,4 +1,4 @@
-// use std::string::String;
+use std::string::String;
 
 #[derive(Debug)]
 pub struct TokenRange {
@@ -7,13 +7,13 @@ pub struct TokenRange {
 }
 
 #[derive(Debug)]
-pub struct Token<'a> {
-    pub value:  &'a str,
+pub struct Token {
+    pub value:  String,
     pub range:  TokenRange,
     pub ttype:  TokenType,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum TokenType {
     Opc,
     Clc,
@@ -23,6 +23,7 @@ pub enum TokenType {
     Assoc,
     Str,
     Other,
+    EOF,
 }
 
 fn skip_whitespace(s: &str) -> usize {
@@ -57,16 +58,22 @@ fn next_token(s: &str) -> Option<TokenRange> {
     let mut pos = skip_whitespace(&s);
     let sc = s.as_bytes();
 
-    if s[pos..].len() == 0 {
+    if s[pos..].is_empty() {
+        println!("none");
         return None;
     }
 
     while (sc[pos] as char) == ';' {
-        pos += match skip_to_char(&s[pos+1..], '\n') {
+        pos += 1 + match skip_to_char(&s[pos+1..], '\n') {
             Some(n) => n,
             None => s[pos+1..].len(),
         };
-        pos += skip_whitespace(&s[pos+1..]);
+        pos += skip_whitespace(&s[pos..]);
+
+        if s[pos..].is_empty() {
+            println!("none");
+            return None;
+        }
     }
 
     match sc[pos] as char {
@@ -135,13 +142,19 @@ pub fn tokenize<'a>(s: &'a str) -> Vec<Token> {
             _   => TokenType::Other,
         };
         let t = Token {
-            value:  &val,
-            range:  tok_ran,
-            ttype:  ttype,
+            value: String::from(val),
+            range: tok_ran,
+            ttype: ttype,
         };
         res.push(t);
     }
 
+    // NOTE: Temporary
+    // res.push(Token {
+    //     value: String::new(),
+    //     range: TokenRange { start: 0, end: 0, },
+    //     ttype: TokenType::EOF,
+    // });
     res.reverse();
     res
 }
