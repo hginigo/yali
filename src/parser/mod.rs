@@ -28,8 +28,13 @@ use std::boxed::Box;
 use std::collections::LinkedList;
 
 #[macro_use]
-mod error;
+pub mod error;
 use crate::parser::error::ParserErr;
+
+#[macro_export]
+macro_rules! nil_atom {
+    () => { Expr::Atom(Box::new(Atom::Nil)) }
+}
 
 // TODO: quote and assoc
 // Evaluable
@@ -117,6 +122,23 @@ fn parse_atom(tokens: &mut Vec<Token>) -> Result<Atom, error::ParserErr> {
     return Ok(Atom::Value(t.value.clone()));
 }
 
+fn parse_cdr(tokens: &mut Vec<Token>) -> Result<Expr, error::ParserErr> {
+    let t = tokens.pop().ok_or(token_not_found!("Token not found parsing cons"))?;
+
+    if t.ttype != TokenType::Dot {
+        return Err(unexpected_token!(".", t));
+    }
+
+    let expr = parse_expr(tokens)?;
+    let end = tokens.pop().ok_or(token_not_found!("Unexpected EOF parsing cons, ')' may be missing"))?;
+
+    match end.ttype {
+        TokenType::Clc => Ok(expr),
+        _ => Err(unexpected_token!(")", end)),
+    }
+
+}
+
 fn parse_list(tokens: &mut Vec<Token>) -> Result<List, error::ParserErr> {
     let t = tokens.pop().ok_or(token_not_found!("Token not found parsing list"))?;
     let mut list: LinkedList<Expr> = LinkedList::new();
@@ -133,10 +155,24 @@ fn parse_list(tokens: &mut Vec<Token>) -> Result<List, error::ParserErr> {
         };
 
         match next.ttype {
-            TokenType::Clc => {
-                tokens.pop().unwrap();
+            TokenType::Dot => {
+                if list.is_empty() { 
+                    return Err(unexpected_token!("(, ', <,>, `, <string>, <atom>, <value>",
+                                                 tokens
+                                                 .pop()
+                                                 .unwrap()));
+                }
+                let cdr = parse_cdr(tokens)?;
+                list.push_back(cdr);
                 return Ok(list);
             },
+
+            TokenType::Clc => {
+                tokens.pop().unwrap();
+                list.push_back(nil_atom!());
+                return Ok(list);
+            },
+
             _ => {
                 let res = parse_expr(tokens);
                 if res.is_ok() {
@@ -150,11 +186,6 @@ fn parse_list(tokens: &mut Vec<Token>) -> Result<List, error::ParserErr> {
 
 }
 
-#[macro_export]
-macro_rules! nil_atom {
-    () => { Expr::Atom(Box::new(Atom::Nil)) }
-}
-
 pub fn parse_expr(tokens: &mut Vec<Token>) -> Result<Expr, error::ParserErr> {
     let t = match tokens.last() {
         Some(t) => t,
@@ -165,7 +196,7 @@ pub fn parse_expr(tokens: &mut Vec<Token>) -> Result<Expr, error::ParserErr> {
 
         TokenType::Opc => {
             let l = parse_list(tokens)?;
-            if l.len() == 0 { nil_atom!() }
+            if l.len() <= 1 { nil_atom!() }
             else { Expr::List(Box::new(l)) }
         },
 
@@ -196,7 +227,13 @@ pub fn parse_expr(tokens: &mut Vec<Token>) -> Result<Expr, error::ParserErr> {
     Ok(res)
 }
 
-pub fn parse(mut _tokens: Vec<Token>) -> Vec<Expr> {
-    unimplemented!();
+pub fn parse(tokens: &mut Vec<Token>) -> Result<Expr, error::ParserErr> {
+    let expr = parse_expr(tokens)?;
+
+    if tokens.is_empty() {
+        Ok(expr)
+    } else {
+        Err(unexpected_token!("EOF", tokens.pop().unwrap()))
+    }
 }
 

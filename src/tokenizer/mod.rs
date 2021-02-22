@@ -20,10 +20,10 @@ pub enum TokenType {
     Quo,
     Quasi,
     Unquo,
-    Assoc,
+    Dot,
     Str,
     Other,
-    EOF,
+    Eof,
 }
 
 fn skip_whitespace(s: &str) -> usize {
@@ -45,7 +45,7 @@ fn next_valid_symbol(s: &str) -> usize {
         }
         match c {
             '(' | ')' | '"' | '\''|
-            ';' | ',' => return i,
+            ';' | ',' | '.' => return i,
             _ => {
                 continue
             },
@@ -59,7 +59,6 @@ fn next_token(s: &str) -> Option<TokenRange> {
     let sc = s.as_bytes();
 
     if s[pos..].is_empty() {
-        println!("none");
         return None;
     }
 
@@ -71,7 +70,6 @@ fn next_token(s: &str) -> Option<TokenRange> {
         pos += skip_whitespace(&s[pos..]);
 
         if s[pos..].is_empty() {
-            println!("none");
             return None;
         }
     }
@@ -137,7 +135,7 @@ pub fn tokenize<'a>(s: &'a str) -> Vec<Token> {
             '\''=> TokenType::Quo,
             '`' => TokenType::Quasi,
             ',' => TokenType::Unquo,
-            '.' => TokenType::Assoc,
+            '.' => TokenType::Dot,
             '"' => TokenType::Str,
             _   => TokenType::Other,
         };
