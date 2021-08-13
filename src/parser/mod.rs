@@ -26,10 +26,13 @@
 use super::tokenizer::{Token, TokenType};
 use std::boxed::Box;
 use std::collections::LinkedList;
+use super::env::Env;
+use super::evaluator::error::EvalError;
+use std::fmt;
 
 #[macro_use]
 pub mod error;
-use crate::parser::error::ParserErr;
+use error::ParserErr;
 
 #[macro_export]
 macro_rules! nil_atom {
@@ -38,7 +41,7 @@ macro_rules! nil_atom {
 
 // TODO: quote and assoc
 // Evaluable
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     Atom(Box<Atom>),
     List(Box<List>),
@@ -47,17 +50,41 @@ pub enum Expr {
     Unquote(Box<Expr>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Atom {
     Str(String),
     Num(i32),
     Bool(bool),
     Value(String),
     Nil,
+    Lambda(Lambda),
+    Native(NativeEnc),
 }
 
 // Linked list
 pub type List = LinkedList<Expr>;
+
+#[derive(Debug, Clone)]
+pub struct Lambda {
+    pub args_list: Expr,
+    pub body: Expr,
+    pub env: Env,
+}
+
+pub type NativeFn = fn(List, Option<&Env>) -> Result<Atom, EvalError>;
+pub struct NativeEnc(pub NativeFn);
+
+impl fmt::Debug for NativeEnc {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Native")
+    }
+}
+
+impl Clone for NativeEnc {
+    fn clone(&self) -> Self {
+        NativeEnc(self.0)
+    }
+}
 
 fn parse_str(t: &Token) -> Result<String, error::ParserErr> {
     // let t = tokens.pop().ok_or(token_not_found!("Token not found parsing str"))?;
