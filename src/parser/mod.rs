@@ -1,8 +1,7 @@
 /*
  * Lisp Grammar definition
  *
- * Expression = Compound
- *            | List
+ * Expression = List
  *            | Atom
  *            | Value
  *            | quote Expression
@@ -10,10 +9,10 @@
  *            | unquote Expression
  *            | Expression assoc Expression
  * 
+ * List = ( Compound )
+ *
  * Compound = Expression Compound
  *          | nil
- *
- * List = ( Compound )
  *
  * Value = ( let name Expression )
  *
@@ -39,6 +38,11 @@ macro_rules! nil_atom {
     () => { Expr::Atom(Box::new(Atom::Nil)) }
 }
 
+#[macro_export]
+macro_rules! atom_num {
+    ($a:expr) => { Expr::Atom(Box::new(Atom::Num($a))) }
+}
+
 // TODO: quote and assoc
 // Evaluable
 #[derive(Debug, Clone)]
@@ -55,7 +59,7 @@ pub enum Atom {
     Str(String),
     Num(i32),
     Bool(bool),
-    Value(String),
+    Symbol(String),
     Nil,
     Lambda(Lambda),
     Native(NativeEnc),
@@ -71,7 +75,7 @@ pub struct Lambda {
     pub env: Env,
 }
 
-pub type NativeFn = fn(List, Option<&Env>) -> Result<Atom, EvalError>;
+pub type NativeFn = fn(List, Option<&Env>) -> Result<Expr, EvalError>;
 pub struct NativeEnc(pub NativeFn);
 
 impl fmt::Debug for NativeEnc {
@@ -86,7 +90,7 @@ impl Clone for NativeEnc {
     }
 }
 
-fn parse_str(t: &Token) -> Result<String, error::ParserErr> {
+fn parse_str(t: &Token) -> Result<String, ParserErr> {
     // let t = tokens.pop().ok_or(token_not_found!("Token not found parsing str"))?;
     match t.ttype {
         TokenType::Str => Ok(t.value.clone()),
@@ -94,7 +98,7 @@ fn parse_str(t: &Token) -> Result<String, error::ParserErr> {
     }
 }
 
-fn parse_num(t: &Token) -> Result<i32, error::ParserErr> {
+fn parse_num(t: &Token) -> Result<i32, ParserErr> {
     // let t = tokens.pop().ok_or(token_not_found!("Token not found parsing num"))?;
 
     if t.ttype != TokenType::Other {
@@ -109,7 +113,7 @@ fn parse_num(t: &Token) -> Result<i32, error::ParserErr> {
     Ok(num)
 }
 
-fn parse_bool(t: &Token) -> Result<bool, error::ParserErr> {
+fn parse_bool(t: &Token) -> Result<bool, ParserErr> {
     if t.ttype != TokenType::Other {
         return Err(token_not_found!("<bool>"));
     };
@@ -125,7 +129,7 @@ fn parse_bool(t: &Token) -> Result<bool, error::ParserErr> {
     Ok(val)
 }
 
-fn parse_atom(tokens: &mut Vec<Token>) -> Result<Atom, error::ParserErr> {
+fn parse_atom(tokens: &mut Vec<Token>) -> Result<Atom, ParserErr> {
     let t = tokens.pop().ok_or(token_not_found!("Token not found parsing atom"))?;
 
     if t.ttype == TokenType::Str {
@@ -146,10 +150,10 @@ fn parse_atom(tokens: &mut Vec<Token>) -> Result<Atom, error::ParserErr> {
     //     Ok(val) => Ok(Atom::Bool(val)),
     //     Err(_) => Err(unexpected_token!("<atom>", t)),
     // }
-    return Ok(Atom::Value(t.value.clone()));
+    return Ok(Atom::Symbol(t.value.clone()));
 }
 
-fn parse_cdr(tokens: &mut Vec<Token>) -> Result<Expr, error::ParserErr> {
+fn parse_cdr(tokens: &mut Vec<Token>) -> Result<Expr, ParserErr> {
     let t = tokens.pop().ok_or(token_not_found!("Token not found parsing cons"))?;
 
     if t.ttype != TokenType::Dot {
@@ -166,7 +170,7 @@ fn parse_cdr(tokens: &mut Vec<Token>) -> Result<Expr, error::ParserErr> {
 
 }
 
-fn parse_list(tokens: &mut Vec<Token>) -> Result<List, error::ParserErr> {
+fn parse_list(tokens: &mut Vec<Token>) -> Result<List, ParserErr> {
     let t = tokens.pop().ok_or(token_not_found!("Token not found parsing list"))?;
     let mut list: LinkedList<Expr> = LinkedList::new();
 
@@ -213,7 +217,7 @@ fn parse_list(tokens: &mut Vec<Token>) -> Result<List, error::ParserErr> {
 
 }
 
-pub fn parse_expr(tokens: &mut Vec<Token>) -> Result<Expr, error::ParserErr> {
+pub fn parse_expr(tokens: &mut Vec<Token>) -> Result<Expr, ParserErr> {
     let t = match tokens.last() {
         Some(t) => t,
         None => return Ok(nil_atom!()),
@@ -254,7 +258,7 @@ pub fn parse_expr(tokens: &mut Vec<Token>) -> Result<Expr, error::ParserErr> {
     Ok(res)
 }
 
-pub fn parse(tokens: &mut Vec<Token>) -> Result<Expr, error::ParserErr> {
+pub fn parse(tokens: &mut Vec<Token>) -> Result<Expr, ParserErr> {
     let expr = parse_expr(tokens)?;
 
     if tokens.is_empty() {

@@ -4,6 +4,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 pub mod error {
+    #[derive(Debug)]
     pub struct UndefinedSymbol {}
 }
 

@@ -6,6 +6,7 @@ use yali::evaluator::eval_expr;
 use rustyline::Editor;
 use rustyline::error::ReadlineError;
 use std::collections::HashMap;
+use yali::nil_atom;
 
 fn repl() -> i32 {
     let mut rl = Editor::<()>::new();
@@ -29,7 +30,13 @@ fn repl() -> i32 {
                         continue
                     },
                 };
-                let ev = eval_expr(exprs, &env).unwrap_or(Atom::Nil);
+                let ev = match eval_expr(exprs, &env) {
+                    Ok(a) => a,
+                    a =>  {
+                        println!("{:?}", a);
+                        nil_atom!()
+                    },
+                };
                 println!("{:?}", ev);
             },
             Err(ReadlineError::Interrupted) => {
