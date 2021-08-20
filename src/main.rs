@@ -15,6 +15,8 @@ fn repl() -> i32 {
     initial_env.insert("-".to_string(), Expr::Atom(Box::new(Atom::Native(NativeEnc(sub)))));
     initial_env.insert("*".to_string(), Expr::Atom(Box::new(Atom::Native(NativeEnc(mul)))));
     initial_env.insert("/".to_string(), Expr::Atom(Box::new(Atom::Native(NativeEnc(div)))));
+    initial_env.insert("set".to_string(), Expr::Atom(Box::new(Atom::Native(NativeEnc(set)))));
+    initial_env.insert("inspect".to_string(), Expr::Atom(Box::new(Atom::Native(NativeEnc(inspect)))));
     let env = Env::from(initial_env);
     let exit_code;
     loop {

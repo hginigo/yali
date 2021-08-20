@@ -134,4 +134,42 @@ pub fn div(mut list: List, env: Option<&Env>) -> Result<Expr, EvalError> {
     Ok(atom_num!(res))
 }
 
+/* Set global variables */
+pub fn set(mut list: List, env: Option<&Env>) -> Result<Expr, EvalError> {
+    let car = list.pop_front().ok_or(EvalError::EmptyList)?;
+
+    if !list.is_empty() && list.len() > 2 {
+        println!("{:?}", list);
+        return Err(EvalError::WrongNumOfArgs(2, list.len()));
+    }
+
+    let e;
+    let env = if env.is_some() {
+        env.unwrap()
+    } else {
+        e = Env::new(None);
+        &e
+    };
+    let sym = match eval_expr(car, &env)? {
+        Expr::Atom(a) => *a,
+        _ => unimplemented!(),
+    };
+    let sym = match sym {
+        Atom::Symbol(str) => str,
+        a => return Err(EvalError::TypeMismatch("symbol".to_string(), a)),
+    };
+
+    let cdr = list.pop_front().unwrap();
+    let val = match eval_expr(cdr, &env)? {
+        Expr::Atom(a) => *a,
+        _=> unimplemented!(),
+    };
+    env.insert(&sym.as_str(), Expr::Atom(Box::new(val.clone())));
+    Ok(Expr::Atom(Box::new(val)))
+}
+
+pub fn inspect(_: List, env: Option<&Env>) -> Result<Expr, EvalError> {
+    assert!(env.is_some());
+    println!("{:?}", env.unwrap());
+    Ok(nil_atom!())
 }
