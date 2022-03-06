@@ -62,8 +62,7 @@ impl Env {
     pub fn get(&self, key: &str) -> Result<Expr, UndefinedSymbol> {
         match self.find_env(key) {
             Some(env) => Ok(env.0.symbols.borrow().get(key).unwrap().clone()),
-            None => Err(UndefinedSymbol {})
+            None => Err(UndefinedSymbol {}),
         }
     }
 }
-

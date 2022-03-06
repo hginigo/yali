@@ -2,15 +2,15 @@ use std::string::String;
 
 #[derive(Debug)]
 pub struct TokenRange {
-    start:  usize,
-    end:    usize,
+    start: usize,
+    end: usize,
 }
 
 #[derive(Debug)]
 pub struct Token {
-    pub value:  String,
-    pub range:  TokenRange,
-    pub ttype:  TokenType,
+    pub value: String,
+    pub range: TokenRange,
+    pub ttype: TokenType,
 }
 
 #[derive(Debug, PartialEq)]
@@ -44,11 +44,8 @@ fn next_valid_symbol(s: &str) -> usize {
             return i;
         }
         match c {
-            '(' | ')' | '"' | '\''|
-            ';' | ',' | '.' => return i,
-            _ => {
-                continue
-            },
+            '(' | ')' | '"' | '\'' | ';' | ',' | '.' => return i,
+            _ => continue,
         }
     }
     s.len()
@@ -63,9 +60,9 @@ fn next_token(s: &str) -> Option<TokenRange> {
     }
 
     while (sc[pos] as char) == ';' {
-        pos += 1 + match skip_to_char(&s[pos+1..], '\n') {
+        pos += 1 + match skip_to_char(&s[pos + 1..], '\n') {
             Some(n) => n,
-            None => s[pos+1..].len(),
+            None => s[pos + 1..].len(),
         };
         pos += skip_whitespace(&s[pos..]);
 
@@ -75,35 +72,37 @@ fn next_token(s: &str) -> Option<TokenRange> {
     }
 
     match sc[pos] as char {
-        '(' |
-        ')' |
-        '.' |
-        '\''|
-        ',' => {
-            Some(TokenRange { 
+        '(' | ')' | '.' | '\'' | ',' => {
+            Some(TokenRange {
                 // ttype: TokenType::Symbol,
-                start: pos, 
-                end: pos+1,
-            })},
+                start: pos,
+                end: pos + 1,
+            })
+        }
 
         '"' => {
-            let sl = &s[pos+1..];
+            let sl = &s[pos + 1..];
             let end = skip_to_char(sl, '"');
             // println!("{} end: {:?}", sl.len(), end);
             Some(TokenRange {
                 // ttype: TokenType::Str,
                 start: pos,
-                end: if end.is_some() { end.unwrap() + 1 }
-                    else { sl.len() } + pos + 1,
+                end: if end.is_some() {
+                    end.unwrap() + 1
+                } else {
+                    sl.len()
+                } + pos
+                    + 1,
             })
-        },
+        }
 
         _ => {
             Some(TokenRange {
                 // ttype: TokenType::Name,
                 start: pos,
-                end: pos + next_valid_symbol(&s[pos+1..]) + 1,
-        })},
+                end: pos + next_valid_symbol(&s[pos + 1..]) + 1,
+            })
+        }
     }
 }
 
@@ -115,8 +114,8 @@ pub fn tokenize<'a>(s: &'a str) -> Vec<Token> {
         let tok_ran = match next_token(&s[offs..]) {
             // Return the given range with current offset
             Some(tr) => TokenRange {
-                start:  tr.start + offs,
-                end:    tr.end + offs,
+                start: tr.start + offs,
+                end: tr.end + offs,
             },
             None => break, // All tokens have been processed, end here
         };
@@ -132,12 +131,12 @@ pub fn tokenize<'a>(s: &'a str) -> Vec<Token> {
         let ttype = match c {
             '(' => TokenType::Opc,
             ')' => TokenType::Clc,
-            '\''=> TokenType::Quo,
+            '\'' => TokenType::Quo,
             '`' => TokenType::Quasi,
             ',' => TokenType::Unquo,
             '.' => TokenType::Dot,
             '"' => TokenType::Str,
-            _   => TokenType::Other,
+            _ => TokenType::Other,
         };
         let t = Token {
             value: String::from(val),
@@ -156,4 +155,3 @@ pub fn tokenize<'a>(s: &'a str) -> Vec<Token> {
     res.reverse();
     res
 }
-

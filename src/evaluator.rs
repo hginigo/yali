@@ -1,9 +1,9 @@
-use super::parser::{Atom, Expr, List, NativeEnc};
 use super::env::Env;
+use super::parser::{Atom, Expr, List, NativeEnc};
 use error::EvalError;
 
 pub mod error {
-    use crate::parser::Atom;
+    use crate::parser::{Atom, Expr};
     #[derive(Debug)]
     pub enum EvalError {
         DottedList,
@@ -27,7 +27,7 @@ pub fn eval_expr(exp: Expr, env: &Env) -> Result<Expr, EvalError> {
 pub fn eval_atom(atom: Atom, env: &Env) -> Result<Expr, EvalError> {
     match atom {
         Atom::Symbol(s) => {
-            let exp =  env.get(&s);
+            let exp = env.get(&s);
             if exp.is_ok() {
                 eval_expr(exp.unwrap(), env)
             } else {

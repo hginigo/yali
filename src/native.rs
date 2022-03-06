@@ -1,5 +1,5 @@
-use super::parser::{Expr, Atom, List};
 use super::env::Env;
+use super::parser::{Atom, Expr, List};
 use crate::atom_num;
 use crate::nil_atom;
 // use super::parser::error::ParserErr;
@@ -17,7 +17,7 @@ pub fn add(list: List, env: Option<&Env>) -> Result<Expr, EvalError> {
         };
         let x = match *res {
             Atom::Num(x) => x,
-             // This has to be the last element on the list
+            // This has to be the last element on the list
             Atom::Nil => break,
             a => return Err(EvalError::TypeMismatch("number, nil".to_string(), a)),
         };
@@ -104,7 +104,7 @@ pub fn div(mut list: List, env: Option<&Env>) -> Result<Expr, EvalError> {
     let next = list.pop_front().ok_or(EvalError::EmptyList)?;
     let atom = match eval_expr(next, &env)? {
         Expr::Atom(a) => *a,
-        _=> unimplemented!(),
+        _ => unimplemented!(),
     };
     match atom {
         Atom::Num(x) => res /= x,
@@ -189,7 +189,7 @@ pub fn set(mut list: List, env: Option<&Env>) -> Result<Expr, EvalError> {
     let cdr = list.pop_front().unwrap();
     let val = match eval_expr(cdr, &env)? {
         Expr::Atom(a) => *a,
-        _=> unimplemented!(),
+        _ => unimplemented!(),
     };
     env.insert(&sym.as_str(), Expr::Atom(Box::new(val.clone())));
     Ok(Expr::Atom(Box::new(val)))

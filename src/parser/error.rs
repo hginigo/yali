@@ -1,6 +1,6 @@
 use crate::tokenizer::Token;
-use std::num;
 use std::fmt;
+use std::num;
 
 #[derive(Debug)]
 pub enum ParserErr {
