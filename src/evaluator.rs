@@ -6,15 +6,16 @@ pub mod error {
     use crate::parser::Atom;
     #[derive(Debug)]
     pub enum EvalError {
+        DottedList,
         UndefinedSymbol(String),
         TypeMismatch(String, Atom),
+        ExprTypeMismatch(String, Expr),
         EmptyList,
         WrongNumOfArgs(i32, usize),
     }
 }
 
 pub fn eval_expr(exp: Expr, env: &Env) -> Result<Expr, EvalError> {
-    // println!("{:?}", exp);
     match exp {
         Expr::Atom(box_atom) => eval_atom(*box_atom, env),
         Expr::List(list) => eval_list(*list, env),
@@ -34,6 +35,32 @@ pub fn eval_atom(atom: Atom, env: &Env) -> Result<Expr, EvalError> {
             }
         }
         a => Ok(Expr::Atom(Box::new(a))),
+    }
+}
+
+pub fn eval(mut list: List, env: Option<&Env>) -> Result<Expr, EvalError> {
+    let e;
+    let env = if env.is_some() {
+        env.unwrap()
+    } else {
+        e = Env::new(None);
+        &e
+    };
+    match list.pop_back() {
+        Some(Expr::Atom(nil)) => {
+            if *nil != Atom::Nil {
+                return Err(EvalError::DottedList);
+            }
+        }
+        Some(_) => return Err(EvalError::DottedList),
+        None => return Err(EvalError::EmptyList),
+    };
+    if list.len() != 1 {
+        Err(EvalError::WrongNumOfArgs(1, list.len()))
+    } else {
+        let res = eval_expr(list.pop_front().unwrap(), &env)?;
+        println!("{:?}", res);
+        Ok(eval_expr(res, &env)?)
     }
 }
 

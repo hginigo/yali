@@ -17,6 +17,18 @@ pub struct EnvType {
 #[derive(Debug, Clone)]
 pub struct Env(Rc<EnvType>);
 
+impl std::cmp::PartialEq for Env {
+    fn eq(&self, _: &Self) -> bool {
+        false
+    }
+}
+
+impl Default for Env {
+    fn default() -> Self {
+        Env::new(None)
+    }
+}
+
 impl Env {
     pub fn new(outer: Option<Env>) -> Env {
         Env(Rc::new(EnvType {

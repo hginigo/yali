@@ -54,7 +54,7 @@ pub enum Expr {
     Unquote(Box<Expr>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Atom {
     Str(String),
     Num(i32),
@@ -68,7 +68,7 @@ pub enum Atom {
 // Linked list
 pub type List = LinkedList<Expr>;
 
-#[derive(Debug, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Lambda {
     pub args_list: Expr,
     pub body: Expr,
@@ -81,6 +81,12 @@ pub struct NativeEnc(pub NativeFn);
 impl fmt::Debug for NativeEnc {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Native")
+    }
+}
+
+impl std::cmp::PartialEq for NativeEnc {
+    fn eq(&self, _: &Self) -> bool {
+        false
     }
 }
 
