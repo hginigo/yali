@@ -71,6 +71,7 @@ pub enum Atom {
 
 // Linked list
 pub type List = LinkedList<Expr>;
+pub struct PrintableList(pub Box<List>);
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Lambda {

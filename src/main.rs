@@ -78,7 +78,7 @@ fn repl() -> i32 {
                         nil_atom!()
                     }
                 };
-                println!("{:?}", ev);
+                println!("{}", ev);
             }
             Err(ReadlineError::Interrupted) => {
                 println!("Interrupt");

@@ -1,3 +1,4 @@
+pub mod display;
 pub mod env;
 pub mod evaluator;
 pub mod native;
