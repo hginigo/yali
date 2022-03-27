@@ -51,6 +51,10 @@ fn repl() -> i32 {
         "cons".to_string(),
         Expr::Atom(Box::new(Atom::Native(NativeEnc(cons)))),
     );
+    initial_env.insert(
+        "lambda".to_string(),
+        Expr::Atom(Box::new(Atom::Native(NativeEnc(lambda)))),
+    );
     initial_env.insert("nil".to_string(), Expr::Atom(Box::new(Atom::Nil)));
     let env = Env::from(initial_env);
     let exit_code;

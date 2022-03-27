@@ -1,10 +1,11 @@
 use super::env::Env;
-use super::parser::{Atom, Expr, List};
+use super::parser::{Atom, Expr, Lambda, List};
 use crate::atom_num;
 use crate::nil_atom;
 // use super::parser::error::ParserErr;
 use super::evaluator::error::EvalError;
 use super::evaluator::eval_expr;
+use std::collections::LinkedList;
 
 // Expects only list args
 pub fn add(list: List, env: Option<&Env>) -> Result<Expr, EvalError> {
@@ -153,12 +154,18 @@ pub fn define(mut list: List, env: Option<&Env>) -> Result<Expr, EvalError> {
     };
 
     let cdr = list.pop_front().unwrap();
-    let val = match eval_expr(cdr, env)? {
-        Expr::Atom(a) => *a,
+    Ok(match eval_expr(cdr, env)? {
+        Expr::Atom(a) => {
+            env.insert(&sym.as_str(), Expr::Atom(a.clone()));
+            Expr::Atom(a)
+        }
+        Expr::Lambda(l) => {
+            env.insert(&sym.as_str(), Expr::Lambda(l.clone()));
+            Expr::Lambda(l)
+        }
         _ => unimplemented!(),
-    };
-    env.insert(&sym.as_str(), Expr::Atom(Box::new(val.clone())));
-    Ok(Expr::Atom(Box::new(val)))
+    })
+    //Ok(Expr::Atom(Box::new(val)))
 }
 
 /* Set global variables */
@@ -247,6 +254,86 @@ pub fn cons(mut list: List, env: Option<&Env>) -> Result<Expr, EvalError> {
         };
         Ok(Expr::List(Box::new(cons)))
     }
+}
+
+pub fn lambda(mut list: List, _env: Option<&Env>) -> Result<Expr, EvalError> {
+    if list.len() < 3 {
+        return Err(EvalError::WrongNumOfArgs(2, list.len() - 1));
+    }
+    match list.pop_back().unwrap() {
+        Expr::Atom(a) => match *a {
+            Atom::Nil => {}
+            _ => return Err(EvalError::DottedList),
+        },
+        _ => return Err(EvalError::DottedList),
+    }
+
+    let lambda_env = Env::new(None);
+
+    let formals = list.pop_front().unwrap();
+    let mut args_list: Vec<String> = vec![];
+    match formals.clone() {
+        Expr::List(arglist) => {
+            let mut atom_list = match as_atoms(*arglist) {
+                Ok(l) => l,
+                _ => unimplemented!(),
+            };
+            let last = atom_list.pop_back().unwrap();
+            for elem in atom_list {
+                match elem {
+                    Atom::Symbol(s) => {
+                        lambda_env.insert(s.as_str(), Expr::Atom(Box::new(Atom::Nil)));
+                        args_list.push(s);
+                    }
+                    _ => unimplemented!(),
+                }
+            }
+            match last {
+                // Mixed argument list
+                Atom::Symbol(s) => {
+                    lambda_env.insert(s.as_str(), Expr::List(Box::new(List::new())));
+                    args_list.push(s);
+                }
+                // Fixed argument list
+                Atom::Nil => {}
+                _ => return Err(EvalError::TypeMismatch("symbol, nil".to_string(), last)),
+            }
+        }
+        // Variadic argument list
+        Expr::Atom(atom) => {
+            if let Atom::Symbol(s) = *atom {
+                lambda_env.insert(s.as_str(), Expr::Atom(Box::new(Atom::Nil)));
+                args_list.push(s);
+            }
+        }
+        // TODO: Throw better error
+        _ => return Err(EvalError::TypeMismatch("list, atom".to_string(), Atom::Nil)),
+    }
+
+    let lambda = Lambda {
+        args_list,
+        body: list,
+        env: lambda_env,
+    };
+
+    Ok(Expr::Lambda(Box::new(lambda)))
+}
+
+fn as_atoms(list: List) -> Result<LinkedList<Atom>, usize> {
+    let iter = list.iter().map(|expr| {
+        if let Expr::Atom(a) = expr {
+            (true, *a.clone())
+        } else {
+            (false, Atom::Nil)
+        }
+    });
+
+    let (bools, atoms): (Vec<bool>, LinkedList<Atom>) = iter.unzip();
+    let err = bools.iter().position(|b| !b);
+    if err.is_some() {
+        return Err(err.unwrap());
+    }
+    Ok(atoms)
 }
 
 pub fn inspect(_: List, env: Option<&Env>) -> Result<Expr, EvalError> {

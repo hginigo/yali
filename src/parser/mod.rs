@@ -56,6 +56,7 @@ pub enum Expr {
     Quote(Box<Expr>),
     Quasiquote(Box<Expr>),
     Unquote(Box<Expr>),
+    Lambda(Box<Lambda>),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -65,7 +66,6 @@ pub enum Atom {
     Bool(bool),
     Symbol(String),
     Nil,
-    Lambda(Lambda),
     Native(NativeEnc),
 }
 
@@ -74,8 +74,8 @@ pub type List = LinkedList<Expr>;
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Lambda {
-    pub args_list: Expr,
-    pub body: Expr,
+    pub args_list: Vec<String>,
+    pub body: List,
     pub env: Env,
 }
 

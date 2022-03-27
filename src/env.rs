@@ -15,7 +15,7 @@ pub struct EnvType {
 }
 
 #[derive(Debug, Clone)]
-pub struct Env(Rc<EnvType>);
+pub struct Env(Rc<RefCell<EnvType>>);
 
 impl std::cmp::PartialEq for Env {
     fn eq(&self, _: &Self) -> bool {
@@ -31,28 +31,32 @@ impl Default for Env {
 
 impl Env {
     pub fn new(outer: Option<Env>) -> Env {
-        Env(Rc::new(EnvType {
+        Env(Rc::new(RefCell::new(EnvType {
             symbols: RefCell::new(HashMap::default()),
             outer: outer,
-        }))
+        })))
     }
 
     pub fn from(symbols: HashMap<String, Expr>) -> Env {
-        Env(Rc::new(EnvType {
+        Env(Rc::new(RefCell::new(EnvType {
             symbols: RefCell::new(symbols),
             outer: None,
-        }))
+        })))
     }
 
     pub fn insert(&self, key: &str, val: Expr) {
-        self.0.symbols.borrow_mut().insert(String::from(key), val);
+        (*self.0)
+            .borrow_mut()
+            .symbols
+            .borrow_mut()
+            .insert(String::from(key), val);
     }
 
     pub fn find_env(&self, key: &str) -> Option<Env> {
-        if self.0.symbols.borrow().contains_key(key) {
+        if (*self.0).borrow().symbols.borrow().contains_key(key) {
             Some(self.clone())
         } else {
-            match self.0.outer.clone() {
+            match (*self.0).borrow().outer.clone() {
                 Some(o) => o.find_env(key),
                 _ => None,
             }
@@ -61,8 +65,13 @@ impl Env {
 
     pub fn get(&self, key: &str) -> Result<Expr, UndefinedSymbol> {
         match self.find_env(key) {
-            Some(env) => Ok(env.0.symbols.borrow().get(key).unwrap().clone()),
+            Some(env) => Ok((*env.0).borrow().symbols.borrow().get(key).unwrap().clone()),
             None => Err(UndefinedSymbol {}),
         }
+    }
+
+    pub fn set_outer(&self, outer: Env) {
+        let mut s = (*self.0).borrow_mut();
+        s.outer = Some(outer);
     }
 }
