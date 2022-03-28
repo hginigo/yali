@@ -30,25 +30,18 @@ pub fn eval_expr(exp: Expr, env: &Env) -> Result<Expr, EvalError> {
 pub fn eval_atom(atom: Atom, env: &Env) -> Result<Expr, EvalError> {
     match atom {
         Atom::Symbol(s) => {
-            let exp = env.get(&s);
-            if exp.is_ok() {
-                eval_expr(exp.unwrap(), env)
+            let expr = env.get(&s);
+            if let Ok(exp) = expr {
+                eval_expr(exp, env)
             } else {
-                Err(EvalError::UndefinedSymbol(s.clone()))
+                Err(EvalError::UndefinedSymbol(s))
             }
         }
         a => Ok(Expr::Atom(Box::new(a))),
     }
 }
 
-pub fn eval(mut list: List, env: Option<&Env>) -> Result<Expr, EvalError> {
-    let e;
-    let env = if env.is_some() {
-        env.unwrap()
-    } else {
-        e = Env::new(None);
-        &e
-    };
+pub fn eval(mut list: List, env: &Env) -> Result<Expr, EvalError> {
     match list.pop_back() {
         Some(Expr::Atom(nil)) => {
             if *nil != Atom::Nil {
@@ -61,9 +54,9 @@ pub fn eval(mut list: List, env: Option<&Env>) -> Result<Expr, EvalError> {
     if list.len() != 1 {
         Err(EvalError::WrongNumOfArgs(1, list.len()))
     } else {
-        let res = eval_expr(list.pop_front().unwrap(), &env)?;
+        let res = eval_expr(list.pop_front().unwrap(), env)?;
         // println!("{:?}", res);
-        Ok(eval_expr(res, &env)?)
+        Ok(eval_expr(res, env)?)
     }
 }
 
@@ -84,7 +77,7 @@ pub fn eval_list(mut list: List, env: &Env) -> Result<Expr, EvalError> {
         Expr::Atom(a) => {
             // println!("{:?}", a);
             match *a {
-                Atom::Native(NativeEnc(f)) => Ok(f(list, Some(env))?),
+                Atom::Native(NativeEnc(f)) => Ok(f(list, env)?),
                 at => Ok(Expr::Atom(Box::new(at))),
             }
         }
@@ -123,7 +116,7 @@ pub fn eval_lambda(lambda: Lambda, mut args: List, env: &Env) -> Result<Expr, Ev
 }
 
 fn eval_body(body: List, env: &Env) -> Result<Expr, EvalError> {
-    assert!(body.len() > 0, "body of the lambda cannot be empty.");
+    assert!(!body.is_empty(), "body of the lambda cannot be empty.");
     let last = body.back().unwrap().clone();
     for expr in body {
         eval_expr(expr, env)?;

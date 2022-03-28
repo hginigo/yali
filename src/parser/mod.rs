@@ -80,7 +80,7 @@ pub struct Lambda {
     pub env: Env,
 }
 
-pub type NativeFn = fn(List, Option<&Env>) -> Result<Expr, EvalError>;
+pub type NativeFn = fn(List, &Env) -> Result<Expr, EvalError>;
 pub struct NativeEnc(pub NativeFn);
 
 impl fmt::Debug for NativeEnc {
@@ -143,42 +143,42 @@ fn parse_bool(t: &Token) -> Result<bool, ParserErr> {
 fn parse_atom(tokens: &mut Vec<Token>) -> Result<Atom, ParserErr> {
     let t = tokens
         .pop()
-        .ok_or(token_not_found!("Token not found parsing atom"))?;
+        .ok_or_else(|| token_not_found!("Token not found parsing atom"))?;
 
     if t.ttype == TokenType::Str {
         let s = parse_str(&t)?;
         return Ok(Atom::Str(s));
     }
 
-    let n = parse_num(&t);
-    if n.is_ok() {
-        return Ok(Atom::Num(n.unwrap()));
+    let num = parse_num(&t);
+    if let Ok(n) = num {
+        return Ok(Atom::Num(n));
     }
 
-    let b = parse_bool(&t);
-    if b.is_ok() {
-        return Ok(Atom::Bool(b.unwrap()));
+    let bool = parse_bool(&t);
+    if let Ok(b) = bool {
+        return Ok(Atom::Bool(b));
     }
     // match b {
     //     Ok(val) => Ok(Atom::Bool(val)),
     //     Err(_) => Err(unexpected_token!("<atom>", t)),
     // }
-    return Ok(Atom::Symbol(t.value.clone()));
+    Ok(Atom::Symbol(t.value))
 }
 
 fn parse_cdr(tokens: &mut Vec<Token>) -> Result<Expr, ParserErr> {
     let t = tokens
         .pop()
-        .ok_or(token_not_found!("Token not found parsing cons"))?;
+        .ok_or_else(|| token_not_found!("Token not found parsing cons"))?;
 
     if t.ttype != TokenType::Dot {
         return Err(unexpected_token!(".", t));
     }
 
     let expr = parse_expr(tokens)?;
-    let end = tokens.pop().ok_or(token_not_found!(
-        "Unexpected EOF parsing cons, ')' may be missing"
-    ))?;
+    let end = tokens
+        .pop()
+        .ok_or_else(|| token_not_found!("Unexpected EOF parsing cons, ')' may be missing"))?;
 
     match end.ttype {
         TokenType::Clc => Ok(expr),
@@ -189,7 +189,7 @@ fn parse_cdr(tokens: &mut Vec<Token>) -> Result<Expr, ParserErr> {
 fn parse_list(tokens: &mut Vec<Token>) -> Result<List, ParserErr> {
     let t = tokens
         .pop()
-        .ok_or(token_not_found!("Token not found parsing list"))?;
+        .ok_or_else(|| token_not_found!("Token not found parsing list"))?;
     let mut list: LinkedList<Expr> = LinkedList::new();
 
     if t.ttype != TokenType::Opc {
@@ -228,8 +228,8 @@ fn parse_list(tokens: &mut Vec<Token>) -> Result<List, ParserErr> {
 
             _ => {
                 let res = parse_expr(tokens);
-                if res.is_ok() {
-                    list.push_back(res.unwrap());
+                if let Ok(res) = res {
+                    list.push_back(res);
                 } else {
                     return Err(res.unwrap_err());
                 }

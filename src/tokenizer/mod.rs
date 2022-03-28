@@ -52,7 +52,7 @@ fn next_valid_symbol(s: &str) -> usize {
 }
 
 fn next_token(s: &str) -> Option<TokenRange> {
-    let mut pos = skip_whitespace(&s);
+    let mut pos = skip_whitespace(s);
     let sc = s.as_bytes();
 
     if s[pos..].is_empty() {
@@ -87,8 +87,8 @@ fn next_token(s: &str) -> Option<TokenRange> {
             Some(TokenRange {
                 // ttype: TokenType::Str,
                 start: pos,
-                end: if end.is_some() {
-                    end.unwrap() + 1
+                end: if let Some(end) = end {
+                    end + 1
                 } else {
                     sl.len()
                 } + pos
@@ -106,19 +106,24 @@ fn next_token(s: &str) -> Option<TokenRange> {
     }
 }
 
-pub fn tokenize<'a>(s: &'a str) -> Vec<Token> {
+pub fn tokenize(s: &'_ str) -> Vec<Token> {
     let mut res = Vec::new();
     let mut offs = 0;
 
-    loop {
-        let tok_ran = match next_token(&s[offs..]) {
-            // Return the given range with current offset
-            Some(tr) => TokenRange {
-                start: tr.start + offs,
-                end: tr.end + offs,
-            },
-            None => break, // All tokens have been processed, end here
+    while let Some(tr) = next_token(&s[offs..]) {
+        // loop {
+        let tok_ran = TokenRange {
+            start: tr.start + offs,
+            end: tr.end + offs,
         };
+        // let tok_ran = match next_token(&s[offs..]) {
+        //     // Return the given range with current offset
+        //     Some(tr) => TokenRange {
+        //         start: tr.start + offs,
+        //         end: tr.end + offs,
+        //     },
+        //     None => break, // All tokens have been processed, end here
+        // };
 
         let val = &s[tok_ran.start..tok_ran.end];
         offs = tok_ran.end;
@@ -141,7 +146,7 @@ pub fn tokenize<'a>(s: &'a str) -> Vec<Token> {
         let t = Token {
             value: String::from(val),
             range: tok_ran,
-            ttype: ttype,
+            ttype,
         };
         res.push(t);
     }

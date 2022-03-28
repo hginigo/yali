@@ -33,7 +33,7 @@ impl Env {
     pub fn new(outer: Option<Env>) -> Env {
         Env(Rc::new(RefCell::new(EnvType {
             symbols: RefCell::new(HashMap::default()),
-            outer: outer,
+            outer,
         })))
     }
 
