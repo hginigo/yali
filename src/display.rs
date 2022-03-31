@@ -1,4 +1,5 @@
 use super::parser::{Atom, Expr, PrintableList};
+use crate::utils::*;
 use std::fmt::{Display, Formatter, Result};
 
 impl Display for Atom {
@@ -39,11 +40,27 @@ impl Display for PrintableList {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let list = &self.0;
         let mut s = String::from("(");
+        let last = list.back().unwrap();
 
+        let mut i = 1;
         for expr in list.iter() {
-            let lag = format!("{} ", expr);
+            let lag = format!("{}", expr);
             s.push_str(&lag);
+
+            i += 1;
+            if i == list.len() {
+                break;
+            }
+            s.push(' ');
         }
+        s.push_str(
+            if expr_is_nil(&last) {
+                "".to_string()
+            } else {
+                format!(" . {}", last)
+            }
+            .as_str(),
+        );
 
         s.push(')');
         write!(f, "{}", s)

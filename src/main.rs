@@ -5,6 +5,7 @@ use yali::env::*;
 use yali::evaluator::{eval, eval_expr};
 use yali::native::*;
 use yali::nil_atom;
+use yali::parser::error::ParserErr;
 use yali::parser::*;
 use yali::tokenizer::*;
 
@@ -58,16 +59,34 @@ fn repl() -> i32 {
     initial_env.insert("nil".to_string(), Expr::Atom(Box::new(Atom::Nil)));
     let env = Env::from(initial_env);
     let exit_code;
+    let mut lines = String::new();
+    let mut prompt = "> ";
     loop {
-        let readline = rl.readline("> ");
+        let readline = rl.readline(prompt);
         match readline {
             Ok(line) => {
                 rl.add_history_entry(line.as_str());
-                let mut tokens = tokenize(line.as_str());
+                lines.push(' ');
+                lines.push_str(&line);
+
+                let mut tokens = tokenize(lines.as_str());
                 let exprs = match parse(&mut tokens) {
-                    Ok(e) => e,
+                    Ok(e) => {
+                        lines.clear();
+                        prompt = "> ";
+                        e
+                    }
                     Err(e) => {
-                        println!("Parse err: {:?}", e);
+                        match e {
+                            ParserErr::TokenNotFound(_) => {
+                                prompt = "| ";
+                            }
+                            _ => {
+                                println!("Parse err: {:?}", e);
+                                lines.clear();
+                                prompt = "> ";
+                            }
+                        };
                         continue;
                     }
                 };
