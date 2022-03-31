@@ -6,17 +6,28 @@ use std::num;
 pub enum ParserErr {
     TokenNotFound(String),
     ParseInt(num::ParseIntError),
-    UnexpectedToken((String, Token)),
+    UnexpectedToken((Token, Vec<String>)),
+    UnclosedList,
 }
 
 impl fmt::Display for ParserErr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fn format_vec(v: &Vec<String>) -> String {
+            let mut result = format!("`{}'", v[0]);
+            for s in &v[1..] {
+                result = format!("{}, `{}'", result, s);
+            }
+            result
+        }
         match &self {
             Self::TokenNotFound(msg) => write!(f, "{}", msg),
             Self::ParseInt(e) => write!(f, "{}", e),
-            Self::UnexpectedToken((s, t)) => {
-                write!(f, "Expected `{}` but found `{}`", s, t.value.as_str())
+            Self::UnexpectedToken((t, v)) => {
+                write!(f, "Expected any of {} but found `{}'", format_vec(v), t.value.as_str())
             }
+            Self::UnclosedList => write!(f,
+                "Unexpected EOF parsing cons, ')' may be missing (unclosed list)"
+            )
         }
     }
 }
@@ -30,9 +41,14 @@ macro_rules! token_not_found {
 
 #[macro_export]
 macro_rules! unexpected_token {
-    ( $s:expr, $t:expr ) => {
-        ParserErr::UnexpectedToken((($s as &str).to_owned(), $t))
+    ( $t:expr, $( $s:expr ),* ) => {
+        ParserErr::UnexpectedToken(($t, vec![$( $s.to_owned() ),*]))
     };
+}
+
+#[macro_export]
+macro_rules! unclosed_list {
+    () => { ParserErr::UnclosedList }
 }
 
 // impl Error for ParserErr {

@@ -78,11 +78,11 @@ fn repl() -> i32 {
                     }
                     Err(e) => {
                         match e {
-                            ParserErr::TokenNotFound(_) => {
+                            ParserErr::UnclosedList => {
                                 prompt = "| ";
                             }
                             _ => {
-                                println!("Parse err: {:?}", e);
+                                println!("Parse error: {}", e);
                                 lines.clear();
                                 prompt = "> ";
                             }

@@ -85,7 +85,7 @@ pub struct NativeEnc(pub NativeFn);
 
 impl fmt::Debug for NativeEnc {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Native")
+        write!(f, "<native>")
     }
 }
 
@@ -172,17 +172,17 @@ fn parse_cdr(tokens: &mut Vec<Token>) -> Result<Expr, ParserErr> {
         .ok_or_else(|| token_not_found!("Token not found parsing cons"))?;
 
     if t.ttype != TokenType::Dot {
-        return Err(unexpected_token!(".", t));
+        return Err(unexpected_token!(t, "."));
     }
 
     let expr = parse_expr(tokens)?;
     let end = tokens
         .pop()
-        .ok_or_else(|| token_not_found!("Unexpected EOF parsing cons, ')' may be missing"))?;
+        .ok_or_else(|| unclosed_list!())?;
 
     match end.ttype {
         TokenType::Clc => Ok(expr),
-        _ => Err(unexpected_token!(")", end)),
+        _ => Err(unexpected_token!(end, ")")),
     }
 }
 
@@ -193,7 +193,7 @@ fn parse_list(tokens: &mut Vec<Token>) -> Result<List, ParserErr> {
     let mut list: LinkedList<Expr> = LinkedList::new();
 
     if t.ttype != TokenType::Opc {
-        return Err(unexpected_token!("(", t));
+        return Err(unexpected_token!(t, "("));
     }
 
     loop {
@@ -201,9 +201,7 @@ fn parse_list(tokens: &mut Vec<Token>) -> Result<List, ParserErr> {
             Some(next) => next,
             // TODO: Give the position of the error
             None => {
-                return Err(token_not_found!(
-                    "Unexpected EOF parsing list, ')' may be missing"
-                ))
+                return Err(unclosed_list!())
             }
         };
 
@@ -211,8 +209,8 @@ fn parse_list(tokens: &mut Vec<Token>) -> Result<List, ParserErr> {
             TokenType::Dot => {
                 if list.is_empty() {
                     return Err(unexpected_token!(
-                        "(, ', <,>, `, <string>, <atom>, <value>",
-                        tokens.pop().unwrap()
+                        tokens.pop().unwrap(),
+                        "(", "'", "<",">", "`", "<string>", "<atom>", "<value>"
                     ));
                 }
                 let cdr = parse_cdr(tokens)?;
@@ -276,8 +274,8 @@ pub fn parse_expr(tokens: &mut Vec<Token>) -> Result<Expr, ParserErr> {
         }
         _ => {
             return Err(unexpected_token!(
-                "(, ', <,>, `, <string>, <atom>, <value>",
-                tokens.pop().unwrap()
+                tokens.pop().unwrap(),
+                "(", "'", "<",">", "`", "<string>", "<atom>", "<value>"
             ))
         }
     };
@@ -291,6 +289,6 @@ pub fn parse(tokens: &mut Vec<Token>) -> Result<Expr, ParserErr> {
     if tokens.is_empty() {
         Ok(expr)
     } else {
-        Err(unexpected_token!("EOF", tokens.pop().unwrap()))
+        Err(unexpected_token!(tokens.pop().unwrap(), "EOF"))
     }
 }
