@@ -258,7 +258,7 @@ pub fn cons(mut list: List, env: &Env) -> Result<Expr, EvalError> {
 }
 
 // TODO: Handle all possible parameter variants
-pub fn lambda(mut list: List, _env: &Env) -> Result<Expr, EvalError> {
+pub fn lambda(mut list: List, env: &Env) -> Result<Expr, EvalError> {
     if list.len() < 3 {
         return Err(EvalError::WrongNumOfArgs(2, list.len() - 1));
     }
@@ -271,6 +271,9 @@ pub fn lambda(mut list: List, _env: &Env) -> Result<Expr, EvalError> {
     }
 
     let lambda_env = Env::new(None);
+    // TODO: This has to be a Rc or reference,
+    // should not be a copy
+    lambda_env.set_outer(env.clone());
 
     let formals = list.pop_front().unwrap();
     let mut args_list: Vec<String> = vec![];

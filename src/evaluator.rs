@@ -68,7 +68,7 @@ pub fn eval_list(mut list: List, env: &Env) -> Result<Expr, EvalError> {
     }
 }
 
-pub fn eval_lambda(lambda: Lambda, mut args: List, env: &Env) -> Result<Expr, EvalError> {
+pub fn eval_lambda(lambda: Lambda, mut args: List, _env: &Env) -> Result<Expr, EvalError> {
     args.pop_back().unwrap();
     let lambda_args_count = lambda.args_list.len();
     let args_count = args.len();
@@ -89,8 +89,6 @@ pub fn eval_lambda(lambda: Lambda, mut args: List, env: &Env) -> Result<Expr, Ev
             _ => todo!(),
         }
     }
-    // TODO: set outer to Some(Rc<Env>)
-    lambda.env.set_outer(env.clone());
 
     // TODO: eval all the list
     eval_body(lambda.body, &lambda.env)
