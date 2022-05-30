@@ -1,10 +1,9 @@
 use super::env::Env;
+use super::evaluator::error::EvalError;
+use super::evaluator::eval_expr;
 use super::parser::{Atom, Expr, Lambda, List};
 use crate::atom_num;
 use crate::nil_atom;
-// use super::parser::error::ParserErr;
-use super::evaluator::error::EvalError;
-use super::evaluator::eval_expr;
 use std::collections::LinkedList;
 
 // Expects only list args
@@ -125,6 +124,7 @@ pub fn div(mut list: List, env: &Env) -> Result<Expr, EvalError> {
     Ok(atom_num!(res))
 }
 
+// TODO: handle all possible parameter variants
 pub fn define(mut list: List, env: &Env) -> Result<Expr, EvalError> {
     let car = list.pop_front().ok_or(EvalError::EmptyList)?;
     if !list.is_empty() && list.len() > 2 {
@@ -134,7 +134,7 @@ pub fn define(mut list: List, env: &Env) -> Result<Expr, EvalError> {
 
     let sym = match car {
         Expr::Atom(a) => *a,
-        _ => unimplemented!(),
+        _ => todo!("return better error"),
     };
     let sym = match sym {
         Atom::Symbol(str) => str,
@@ -151,36 +151,64 @@ pub fn define(mut list: List, env: &Env) -> Result<Expr, EvalError> {
             env.insert(sym.as_str(), Expr::Lambda(l.clone()));
             Expr::Lambda(l)
         }
-        _ => unimplemented!(),
+        Expr::List(l) => {
+            env.insert(sym.as_str(), Expr::List(l.clone()));
+            Expr::List(l)
+        }
+        Expr::Quote(q) => {
+            env.insert(sym.as_str(), *q.clone());
+            *q
+        }
+        _ => todo!(),
     })
     //Ok(Expr::Atom(Box::new(val)))
 }
 
 /* Set global variables */
+// TODO: handle all possible parameter variants
 pub fn set(mut list: List, env: &Env) -> Result<Expr, EvalError> {
-    let car = list.pop_front().ok_or(EvalError::EmptyList)?;
+    let sym = list.pop_front().ok_or(EvalError::EmptyList)?;
 
-    if !list.is_empty() && list.len() > 2 {
+    if !list.is_empty() && list.len() != 2 {
         println!("{:?}", list);
         return Err(EvalError::WrongNumOfArgs(2, list.len()));
     }
 
-    let sym = match eval_expr(car, env)? {
+    // TODO: Shrink this
+    let sym = match sym {
         Expr::Atom(a) => *a,
-        _ => unimplemented!(),
+        _ => todo!("proper error report"),
     };
     let sym = match sym {
         Atom::Symbol(str) => str,
         a => return Err(EvalError::TypeMismatch("symbol".to_string(), a)),
     };
+    ////
 
-    let cdr = list.pop_front().unwrap();
-    let val = match eval_expr(cdr, env)? {
-        Expr::Atom(a) => *a,
-        _ => unimplemented!(),
-    };
-    env.insert(sym.as_str(), Expr::Atom(Box::new(val.clone())));
-    Ok(Expr::Atom(Box::new(val)))
+    if !env.contains_symbol(&sym) {
+        return Err(EvalError::UndefinedSymbol(sym));
+    }
+
+    let expr = list.pop_front().unwrap();
+    Ok(match eval_expr(expr, env)? {
+        Expr::Atom(a) => {
+            env.insert(sym.as_str(), Expr::Atom(a.clone()));
+            Expr::Atom(a)
+        }
+        Expr::Lambda(l) => {
+            env.insert(sym.as_str(), Expr::Lambda(l.clone()));
+            Expr::Lambda(l)
+        }
+        Expr::List(l) => {
+            env.insert(sym.as_str(), Expr::List(l.clone()));
+            Expr::List(l)
+        }
+        Expr::Quote(q) => {
+            env.insert(sym.as_str(), *q.clone());
+            *q
+        }
+        _ => todo!("more types"),
+    })
 }
 
 pub fn quote(mut list: List, _env: &Env) -> Result<Expr, EvalError> {
@@ -229,6 +257,7 @@ pub fn cons(mut list: List, env: &Env) -> Result<Expr, EvalError> {
     }
 }
 
+// TODO: Handle all possible parameter variants
 pub fn lambda(mut list: List, _env: &Env) -> Result<Expr, EvalError> {
     if list.len() < 3 {
         return Err(EvalError::WrongNumOfArgs(2, list.len() - 1));
