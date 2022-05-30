@@ -64,7 +64,7 @@ pub fn eval_list(mut list: List, env: &Env) -> Result<Expr, EvalError> {
             other => Ok(Expr::Atom(Box::new(other))),
         },
         Expr::Lambda(l) => eval_lambda(*l, list, env),
-        _ => todo!(), //a => Err(EvalError::TypeMismatch("symbol".to_string(), a)),
+        _ => todo!("check more expressions"),
     }
 }
 

@@ -25,6 +25,7 @@
 use super::env::Env;
 use super::evaluator::error::EvalError;
 use super::tokenizer::{Token, TokenType};
+use crate::atom_nil;
 use std::boxed::Box;
 use std::collections::LinkedList;
 use std::fmt;
@@ -32,20 +33,6 @@ use std::fmt;
 #[macro_use]
 pub mod error;
 use error::ParserErr;
-
-#[macro_export]
-macro_rules! nil_atom {
-    () => {
-        Expr::Atom(Box::new(Atom::Nil))
-    };
-}
-
-#[macro_export]
-macro_rules! atom_num {
-    ($a:expr) => {
-        Expr::Atom(Box::new(Atom::Num($a)))
-    };
-}
 
 // TODO: quote and assoc
 // Evaluable
@@ -223,7 +210,7 @@ fn parse_list(tokens: &mut Vec<Token>) -> Result<List, ParserErr> {
 
             TokenType::Clc => {
                 tokens.pop().unwrap();
-                list.push_back(nil_atom!());
+                list.push_back(atom_nil!());
                 return Ok(list);
             }
 
@@ -242,14 +229,14 @@ fn parse_list(tokens: &mut Vec<Token>) -> Result<List, ParserErr> {
 pub fn parse_expr(tokens: &mut Vec<Token>) -> Result<Expr, ParserErr> {
     let t = match tokens.last() {
         Some(t) => t,
-        None => return Ok(nil_atom!()),
+        None => return Ok(atom_nil!()),
     };
 
     let res = match t.ttype {
         TokenType::Opc => {
             let l = parse_list(tokens)?;
             if l.len() <= 1 {
-                nil_atom!()
+                atom_nil!()
             } else {
                 Expr::List(Box::new(l))
             }
@@ -275,6 +262,7 @@ pub fn parse_expr(tokens: &mut Vec<Token>) -> Result<Expr, ParserErr> {
             let a = parse_atom(tokens)?;
             Expr::Atom(Box::new(a))
         }
+
         _ => {
             return Err(unexpected_token!(
                 tokens.pop().unwrap(),

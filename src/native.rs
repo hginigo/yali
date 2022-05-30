@@ -2,8 +2,8 @@ use super::env::Env;
 use super::evaluator::error::EvalError;
 use super::evaluator::eval_expr;
 use super::parser::{Atom, Expr, Lambda, List};
+use crate::atom_nil;
 use crate::atom_num;
-use crate::nil_atom;
 use std::collections::LinkedList;
 
 // Expects only list args
@@ -212,15 +212,7 @@ pub fn set(mut list: List, env: &Env) -> Result<Expr, EvalError> {
 }
 
 pub fn quote(mut list: List, _env: &Env) -> Result<Expr, EvalError> {
-    match list.pop_back() {
-        Some(Expr::Atom(nil)) => {
-            if *nil != Atom::Nil {
-                return Err(EvalError::DottedList);
-            }
-        }
-        Some(_) => return Err(EvalError::DottedList),
-        None => return Err(EvalError::EmptyList),
-    };
+    pop_and_check_nil(&mut list)?;
     if list.len() != 1 {
         Err(EvalError::WrongNumOfArgs(1, list.len()))
     } else {
@@ -229,15 +221,7 @@ pub fn quote(mut list: List, _env: &Env) -> Result<Expr, EvalError> {
 }
 
 pub fn cons(mut list: List, env: &Env) -> Result<Expr, EvalError> {
-    match list.pop_back() {
-        Some(Expr::Atom(nil)) => {
-            if *nil != Atom::Nil {
-                return Err(EvalError::DottedList);
-            }
-        }
-        Some(_) => return Err(EvalError::DottedList),
-        None => return Err(EvalError::EmptyList),
-    };
+    pop_and_check_nil(&mut list)?;
 
     if list.len() != 2 {
         Err(EvalError::WrongNumOfArgs(2, list.len()))
@@ -324,6 +308,19 @@ pub fn lambda(mut list: List, env: &Env) -> Result<Expr, EvalError> {
     Ok(Expr::Lambda(Box::new(lambda)))
 }
 
+fn pop_and_check_nil(list: &mut List) -> Result<Expr, EvalError> {
+    match list.pop_back() {
+        Some(Expr::Atom(nil)) => {
+            if *nil != Atom::Nil {
+                return Err(EvalError::DottedList);
+            }
+        }
+        Some(_) => return Err(EvalError::DottedList),
+        None => return Err(EvalError::EmptyList),
+    }
+    Ok(atom_nil!())
+}
+
 fn as_atoms(list: List) -> Result<LinkedList<Atom>, usize> {
     let iter = list.iter().map(|expr| {
         if let Expr::Atom(a) = expr {
@@ -343,5 +340,5 @@ fn as_atoms(list: List) -> Result<LinkedList<Atom>, usize> {
 
 pub fn inspect(_: List, env: &Env) -> Result<Expr, EvalError> {
     println!("{:?}", env);
-    Ok(nil_atom!())
+    Ok(atom_nil!())
 }
