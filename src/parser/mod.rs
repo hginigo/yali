@@ -176,9 +176,7 @@ fn parse_cdr(tokens: &mut Vec<Token>) -> Result<Expr, ParserErr> {
     }
 
     let expr = parse_expr(tokens)?;
-    let end = tokens
-        .pop()
-        .ok_or_else(|| unclosed_list!())?;
+    let end = tokens.pop().ok_or_else(|| unclosed_list!())?;
 
     match end.ttype {
         TokenType::Clc => Ok(expr),
@@ -200,9 +198,7 @@ fn parse_list(tokens: &mut Vec<Token>) -> Result<List, ParserErr> {
         let next = match tokens.last() {
             Some(next) => next,
             // TODO: Give the position of the error
-            None => {
-                return Err(unclosed_list!())
-            }
+            None => return Err(unclosed_list!()),
         };
 
         match next.ttype {
@@ -210,7 +206,14 @@ fn parse_list(tokens: &mut Vec<Token>) -> Result<List, ParserErr> {
                 if list.is_empty() {
                     return Err(unexpected_token!(
                         tokens.pop().unwrap(),
-                        "(", "'", "<",">", "`", "<string>", "<atom>", "<value>"
+                        "(",
+                        "'",
+                        "<",
+                        ">",
+                        "`",
+                        "<string>",
+                        "<atom>",
+                        "<value>"
                     ));
                 }
                 let cdr = parse_cdr(tokens)?;
@@ -275,7 +278,14 @@ pub fn parse_expr(tokens: &mut Vec<Token>) -> Result<Expr, ParserErr> {
         _ => {
             return Err(unexpected_token!(
                 tokens.pop().unwrap(),
-                "(", "'", "<",">", "`", "<string>", "<atom>", "<value>"
+                "(",
+                "'",
+                "<",
+                ">",
+                "`",
+                "<string>",
+                "<atom>",
+                "<value>"
             ))
         }
     };

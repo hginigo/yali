@@ -23,11 +23,17 @@ impl fmt::Display for ParserErr {
             Self::TokenNotFound(msg) => write!(f, "{}", msg),
             Self::ParseInt(e) => write!(f, "{}", e),
             Self::UnexpectedToken((t, v)) => {
-                write!(f, "Expected any of {} but found `{}'", format_vec(v), t.value.as_str())
+                write!(
+                    f,
+                    "Expected any of {} but found `{}'",
+                    format_vec(v),
+                    t.value.as_str()
+                )
             }
-            Self::UnclosedList => write!(f,
+            Self::UnclosedList => write!(
+                f,
                 "Unexpected EOF parsing cons, ')' may be missing (unclosed list)"
-            )
+            ),
         }
     }
 }
@@ -48,7 +54,9 @@ macro_rules! unexpected_token {
 
 #[macro_export]
 macro_rules! unclosed_list {
-    () => { ParserErr::UnclosedList }
+    () => {
+        ParserErr::UnclosedList
+    };
 }
 
 // impl Error for ParserErr {

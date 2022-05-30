@@ -12,7 +12,7 @@ pub mod error {
         TypeMismatch(String, Atom),
         ExprTypeMismatch(String, Expr),
         EmptyList,
-        WrongNumOfArgs(i32, usize),
+        WrongNumOfArgs(usize, usize),
     }
 }
 
@@ -23,7 +23,7 @@ pub fn eval_expr(exp: Expr, env: &Env) -> Result<Expr, EvalError> {
         Expr::Quote(quo) => Ok(*quo),
         // TODO: match against all Expr types
         Expr::Lambda(lambda) => Ok(Expr::Lambda(lambda)),
-        _ => unimplemented!(),
+        _ => todo!("more types"),
     }
 }
 
@@ -31,13 +31,9 @@ pub fn eval_atom(atom: Atom, env: &Env) -> Result<Expr, EvalError> {
     match atom {
         Atom::Symbol(s) => {
             let expr = env.get(&s);
-            if let Ok(exp) = expr {
-                eval_expr(exp, env)
-            } else {
-                Err(EvalError::UndefinedSymbol(s))
-            }
+            expr.map_err(|_| EvalError::UndefinedSymbol(s))
         }
-        a => Ok(Expr::Atom(Box::new(a))),
+        other => Ok(Expr::Atom(Box::new(other))),
     }
 }
 
@@ -55,7 +51,6 @@ pub fn eval(mut list: List, env: &Env) -> Result<Expr, EvalError> {
         Err(EvalError::WrongNumOfArgs(1, list.len()))
     } else {
         let res = eval_expr(list.pop_front().unwrap(), env)?;
-        // println!("{:?}", res);
         Ok(eval_expr(res, env)?)
     }
 }
@@ -63,27 +58,13 @@ pub fn eval(mut list: List, env: &Env) -> Result<Expr, EvalError> {
 pub fn eval_list(mut list: List, env: &Env) -> Result<Expr, EvalError> {
     let first = list.pop_front().ok_or(EvalError::EmptyList)?;
 
-    // println!("{:?}", first);
-    // let op = match eval_expr(first, env)? {
-    //     Atom::Value(opr) => opr,
-    //     a => return Err(EvalError::TypeMismatch("symbol".to_string(), a)),
-    // };
-
-    // let res = match env.get(op.as_str()) {
-    //     Ok(exp) => exp,
-    //     _ => return Err(EvalError::UndefinedSymbol(op)),
-    // };
     match eval_expr(first, env)? {
-        Expr::Atom(a) => {
-            // println!("{:?}", a);
-            match *a {
-                Atom::Native(NativeEnc(f)) => Ok(f(list, env)?),
-                at => Ok(Expr::Atom(Box::new(at))),
-            }
-        }
+        Expr::Atom(a) => match *a {
+            Atom::Native(NativeEnc(f)) => Ok(f(list, env)?),
+            other => Ok(Expr::Atom(Box::new(other))),
+        },
         Expr::Lambda(l) => eval_lambda(*l, list, env),
-        _ => unimplemented!(),
-        //a => Err(EvalError::TypeMismatch("symbol".to_string(), a)),
+        _ => todo!(), //a => Err(EvalError::TypeMismatch("symbol".to_string(), a)),
     }
 }
 
@@ -105,7 +86,7 @@ pub fn eval_lambda(lambda: Lambda, mut args: List, env: &Env) -> Result<Expr, Ev
                 // TODO: handle clone
                 lambda.env.insert(syn, Expr::Atom(a.clone()));
             }
-            _ => panic!("TODO: Handle error"),
+            _ => todo!(),
         }
     }
     // TODO: set outer to Some(Rc<Env>)
