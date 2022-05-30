@@ -3,5 +3,7 @@ pub mod env;
 pub mod evaluator;
 pub mod native;
 pub mod parser;
+#[cfg(test)]
+mod tests;
 pub mod tokenizer;
-mod utils;
+pub mod utils;
