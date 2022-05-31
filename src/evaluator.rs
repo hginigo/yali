@@ -68,7 +68,7 @@ pub fn eval_list(mut list: List, env: &Env) -> Result<Expr, EvalError> {
     }
 }
 
-pub fn eval_lambda(lambda: Lambda, mut args: List, _env: &Env) -> Result<Expr, EvalError> {
+pub fn eval_lambda(lambda: Lambda, mut args: List, env: &Env) -> Result<Expr, EvalError> {
     args.pop_back().unwrap();
     let lambda_args_count = lambda.args_list.len();
     let args_count = args.len();
@@ -81,7 +81,7 @@ pub fn eval_lambda(lambda: Lambda, mut args: List, _env: &Env) -> Result<Expr, E
     }
 
     for (val, syn) in args.iter().zip(lambda.args_list.iter()) {
-        match val {
+        match eval_expr(val.clone(), env)? {
             Expr::Atom(a) => {
                 // TODO: handle clone
                 lambda.env.insert(syn, Expr::Atom(a.clone()));

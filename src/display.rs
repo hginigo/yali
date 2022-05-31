@@ -27,10 +27,10 @@ impl Display for Expr {
         let s = match self {
             Expr::Atom(a) => format!("{}", a),
             Expr::List(l) => format!("{}", PrintableList(l.clone())),
-            Expr::Quote(q) => format!("'{}", q),
+            Expr::Quote(q) => format!("(quote {})", q),
             Expr::Quasiquote(q) => format!("`{}", q),
             Expr::Unquote(u) => format!(",{}", u),
-            Expr::Lambda(l) => format!("<lambda>\n{:?}", l),
+            Expr::Lambda(_l) => format!("<lambda>"),
         };
         write!(f, "{}", s)
     }
