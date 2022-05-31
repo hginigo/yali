@@ -161,7 +161,6 @@ pub fn define(mut list: List, env: &Env) -> Result<Expr, EvalError> {
         }
         _ => todo!(),
     })
-    //Ok(Expr::Atom(Box::new(val)))
 }
 
 /* Set global variables */
@@ -306,6 +305,40 @@ pub fn lambda(mut list: List, env: &Env) -> Result<Expr, EvalError> {
     };
 
     Ok(Expr::Lambda(Box::new(lambda)))
+}
+
+pub fn ifcond(mut list: List, env: &Env) -> Result<Expr, EvalError> {
+    pop_back(&mut list)?;
+    if list.len() < 2 || list.len() > 3 {
+        return Err(EvalError::WrongNumOfArgs(3, list.len() - 1));
+    }
+    let test = list.pop_front().unwrap();
+    if as_bool(&test) {
+        eval_expr(list.pop_front().unwrap(), env)
+    } else if list.len() == 2 {
+        eval_expr(list.pop_back().unwrap(), env)
+    } else {
+        Ok(atom_nil!())
+    }
+}
+
+fn as_bool(expr: &Expr) -> bool {
+    if let Expr::Atom(a) = expr {
+        match **a {
+            Atom::Bool(b) => b,
+            _ => true,
+        }
+    } else {
+        true
+    }
+}
+
+fn pop_back(list: &mut List) -> Result<Expr, EvalError> {
+    list.pop_back().ok_or(EvalError::EmptyList)
+}
+
+fn pop_front(list: &mut List) -> Result<Expr, EvalError> {
+    list.pop_front().ok_or(EvalError::EmptyList)
 }
 
 fn pop_and_check_nil(list: &mut List) -> Result<Expr, EvalError> {
