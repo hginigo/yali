@@ -39,11 +39,7 @@ macro_rules! insert_native {
 
 pub fn expr_is_nil(expr: &Expr) -> bool {
     if let Expr::Atom(a) = expr {
-        if let Atom::Nil = **a {
-            true
-        } else {
-            false
-        }
+        matches!(**a, Atom::Nil)
     } else {
         false
     }

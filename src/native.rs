@@ -5,6 +5,19 @@ use super::parser::{Atom, Expr, Lambda, List};
 use crate::atom_nil;
 use crate::atom_num;
 use std::collections::LinkedList;
+use crate::utils::expr_is_nil;
+
+macro_rules! pop_back {
+    ($list:ident) => {
+        $list.pop_back().ok_or(EvalError::EmptyList)
+    };
+}
+
+macro_rules! pop_front {
+    ($list:ident) => {
+        $list.pop_front().ok_or(EvalError::EmptyList)
+    };
+}
 
 // Expects only list args
 pub fn add(list: List, env: &Env) -> Result<Expr, EvalError> {
@@ -166,10 +179,9 @@ pub fn define(mut list: List, env: &Env) -> Result<Expr, EvalError> {
 /* Set global variables */
 // TODO: handle all possible parameter variants
 pub fn set(mut list: List, env: &Env) -> Result<Expr, EvalError> {
-    let sym = list.pop_front().ok_or(EvalError::EmptyList)?;
+    let sym = pop_front!(list)?;
 
-    if !list.is_empty() && list.len() != 2 {
-        println!("{:?}", list);
+    if list.len() != 2 {
         return Err(EvalError::WrongNumOfArgs(2, list.len()));
     }
 
@@ -229,28 +241,22 @@ pub fn cons(mut list: List, env: &Env) -> Result<Expr, EvalError> {
         let cdr = eval_expr(list.pop_back().unwrap(), env)?;
         let cons = if let Expr::List(mut l) = cdr {
             l.push_front(car);
-            *l
+            l
         } else {
             let mut l = List::new();
             l.push_front(car);
             l.push_back(cdr);
-            l
+            Box::new(l)
         };
-        Ok(Expr::List(Box::new(cons)))
+        Ok(Expr::List(cons))
     }
 }
 
 // TODO: Handle all possible parameter variants
 pub fn lambda(mut list: List, env: &Env) -> Result<Expr, EvalError> {
-    if list.len() < 3 {
-        return Err(EvalError::WrongNumOfArgs(2, list.len() - 1));
-    }
-    match list.pop_back().unwrap() {
-        Expr::Atom(a) => match *a {
-            Atom::Nil => {}
-            _ => return Err(EvalError::DottedList),
-        },
-        _ => return Err(EvalError::DottedList),
+    pop_and_check_nil(&mut list)?;
+    if list.len() < 2 {
+        return Err(EvalError::WrongNumOfArgs(2, list.len()));
     }
 
     let lambda_env = Env::new(None);
@@ -312,8 +318,8 @@ pub fn car(mut list: List, env: &Env) -> Result<Expr, EvalError> {
     if list.len() != 1 {
         return Err(EvalError::WrongNumOfArgs(1, list.len()));
     }
-    match eval_expr(pop_front(&mut list)?, env)? {
-        Expr::List(mut l) => pop_front(&mut l),
+    match eval_expr(pop_front!(list)?, env)? {
+        Expr::List(mut l) => pop_front!(l),
         e => Err(EvalError::ExprTypeMismatch("list".to_string(), e)),
     }
 }
@@ -323,9 +329,9 @@ pub fn cdr(mut list: List, env: &Env) -> Result<Expr, EvalError> {
     if list.len() != 1 {
         return Err(EvalError::WrongNumOfArgs(1, list.len()));
     }
-    match eval_expr(pop_front(&mut list)?, env)? {
+    match eval_expr(pop_front!(list)?, env)? {
         Expr::List(mut l) => {
-            pop_front(&mut l)?;
+            pop_front!(l)?;
             Ok(Expr::List(l))
         },
         e => Err(EvalError::ExprTypeMismatch("list".to_string(), e)),
@@ -333,7 +339,7 @@ pub fn cdr(mut list: List, env: &Env) -> Result<Expr, EvalError> {
 }
 
 pub fn ifcond(mut list: List, env: &Env) -> Result<Expr, EvalError> {
-    pop_back(&mut list)?;
+    pop_back!(list)?;
     if list.len() < 2 || list.len() > 3 {
         return Err(EvalError::WrongNumOfArgs(3, list.len() - 1));
     }
@@ -348,6 +354,27 @@ pub fn ifcond(mut list: List, env: &Env) -> Result<Expr, EvalError> {
     }
 }
 
+/*
+fn pop_back(list: &mut List) -> Result<Expr, EvalError> {
+    list.pop_back().ok_or(EvalError::EmptyList)
+}
+
+fn pop_front(list: &mut List) -> Result<Expr, EvalError> {
+    list.pop_front().ok_or(EvalError::EmptyList)
+}
+*/
+
+fn pop_and_check_nil(list: &mut List) -> Result<Expr, EvalError> {
+    match list.pop_back() {
+        Some(expr) =>
+            match expr_is_nil(&expr) {
+                true => Ok(expr),
+                false => Err(EvalError::DottedList),
+            }
+        None => Err(EvalError::EmptyList),
+    }
+}
+
 fn as_bool(expr: &Expr) -> bool {
     if let Expr::Atom(a) = expr {
         match **a {
@@ -357,27 +384,6 @@ fn as_bool(expr: &Expr) -> bool {
     } else {
         true
     }
-}
-
-fn pop_back(list: &mut List) -> Result<Expr, EvalError> {
-    list.pop_back().ok_or(EvalError::EmptyList)
-}
-
-fn pop_front(list: &mut List) -> Result<Expr, EvalError> {
-    list.pop_front().ok_or(EvalError::EmptyList)
-}
-
-fn pop_and_check_nil(list: &mut List) -> Result<Expr, EvalError> {
-    match list.pop_back() {
-        Some(Expr::Atom(nil)) => {
-            if *nil != Atom::Nil {
-                return Err(EvalError::DottedList);
-            }
-        }
-        Some(_) => return Err(EvalError::DottedList),
-        None => return Err(EvalError::EmptyList),
-    }
-    Ok(atom_nil!())
 }
 
 fn as_atoms(list: List) -> Result<LinkedList<Atom>, usize> {
