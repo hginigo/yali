@@ -307,6 +307,31 @@ pub fn lambda(mut list: List, env: &Env) -> Result<Expr, EvalError> {
     Ok(Expr::Lambda(Box::new(lambda)))
 }
 
+pub fn car(mut list: List, env: &Env) -> Result<Expr, EvalError> {
+    pop_and_check_nil(&mut list)?;
+    if list.len() != 1 {
+        return Err(EvalError::WrongNumOfArgs(1, list.len()));
+    }
+    match eval_expr(pop_front(&mut list)?, env)? {
+        Expr::List(mut l) => pop_front(&mut l),
+        e => Err(EvalError::ExprTypeMismatch("list".to_string(), e)),
+    }
+}
+
+pub fn cdr(mut list: List, env: &Env) -> Result<Expr, EvalError> {
+    pop_and_check_nil(&mut list)?;
+    if list.len() != 1 {
+        return Err(EvalError::WrongNumOfArgs(1, list.len()));
+    }
+    match eval_expr(pop_front(&mut list)?, env)? {
+        Expr::List(mut l) => {
+            pop_front(&mut l)?;
+            Ok(Expr::List(l))
+        },
+        e => Err(EvalError::ExprTypeMismatch("list".to_string(), e)),
+    }
+}
+
 pub fn ifcond(mut list: List, env: &Env) -> Result<Expr, EvalError> {
     pop_back(&mut list)?;
     if list.len() < 2 || list.len() > 3 {

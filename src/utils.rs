@@ -62,5 +62,7 @@ pub fn init_map(map: &mut HashMap<String, Expr>) {
     insert_native!(map, "cons", cons);
     insert_native!(map, "lambda", lambda);
     insert_native!(map, "if", ifcond);
+    insert_native!(map, "car", car);
+    insert_native!(map, "cdr", cdr);
     map.insert("nil".to_string(), atom_nil!());
 }
