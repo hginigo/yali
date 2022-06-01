@@ -313,6 +313,7 @@ pub fn ifcond(mut list: List, env: &Env) -> Result<Expr, EvalError> {
         return Err(EvalError::WrongNumOfArgs(3, list.len() - 1));
     }
     let test = list.pop_front().unwrap();
+    let test = eval_expr(test, env)?;
     if as_bool(&test) {
         eval_expr(list.pop_front().unwrap(), env)
     } else if list.len() == 2 {
